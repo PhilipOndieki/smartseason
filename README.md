@@ -3,6 +3,7 @@
 A production-ready REST API for crop field monitoring. Tracks fields across a growing season, assigns field agents, captures field updates and observations, and automatically computes field health status based on crop stage and risk flags.
 
 **Live API:** https://smartseason-7ukd.onrender.com
+**API Documentation:** https://smartseason-7ukd.onrender.com/api-docs
 
 ---
 
