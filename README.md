@@ -1,15 +1,58 @@
-# SmartSeason API
+# SmartSeason Server
 
-A production-ready REST API for crop field monitoring — tracks fields, assigns agents, captures field updates, and automatically computes field health status based on crop stage and risk flags.
+A production-ready REST API for crop field monitoring. Tracks fields across a growing season, assigns field agents, captures field updates and observations, and automatically computes field health status based on crop stage and risk flags.
+
+**Live API:** https://smartseason-7ukd.onrender.com
+
+---
 
 ## Tech Stack
 
-- **Runtime:** Node.js
+- **Runtime:** Node.js 18+
 - **Framework:** Express.js
-- **Database:** MySQL (via mysql2 connection pool)
-- **Auth:** JWT (jsonwebtoken) + bcryptjs
+- **Database:** MySQL via mysql2 connection pool
+- **Auth:** JWT (jsonwebtoken) + bcryptjs password hashing
 - **Environment:** dotenv
 - **CORS:** cors
+- **Cloud Database:** Aiven MySQL (production)
+- **Deployment:** Render (production)
+
+---
+
+## Project Structure
+
+```
+server/
+├── src/
+│   ├── config/
+│   │   └── db.js
+│   ├── middleware/
+│   │   ├── auth.js
+│   │   └── roles.js
+│   ├── modules/
+│   │   ├── auth/
+│   │   │   ├── auth.routes.js
+│   │   │   ├── auth.controller.js
+│   │   │   └── auth.service.js
+│   │   ├── fields/
+│   │   │   ├── fields.routes.js
+│   │   │   ├── fields.controller.js
+│   │   │   └── fields.service.js
+│   │   ├── updates/
+│   │   │   ├── updates.routes.js
+│   │   │   ├── updates.controller.js
+│   │   │   └── updates.service.js
+│   │   └── dashboard/
+│   │       ├── dashboard.routes.js
+│   │       ├── dashboard.controller.js
+│   │       └── dashboard.service.js
+│   └── app.js
+├── database/
+│   └── schema.sql
+├── .env.example
+├── server.js
+└── README.md
+```
 
 ---
 
@@ -18,7 +61,7 @@ A production-ready REST API for crop field monitoring — tracks fields, assigns
 ### Prerequisites
 
 - Node.js 18+
-- MySQL 8+ running locally (or a Railway MySQL instance)
+- MySQL 8+ running locally
 
 ### Steps
 
@@ -31,7 +74,7 @@ npm install
 # 2. Copy env file and fill in your values
 cp .env.example .env
 
-# 3. Provision the database
+# 3. Provision the local database
 mysql -u root -p < database/schema.sql
 
 # 4. Start development server
@@ -40,61 +83,94 @@ npm run dev
 
 The API will be available at `http://localhost:5000`.
 
----
-
-## Railway MySQL Setup
-
-1. Create a new project on [Railway](https://railway.app)
-2. Add a **MySQL** plugin to the project
-3. Copy the connection variables from the Railway MySQL plugin dashboard
-4. In your Railway service, set the environment variables (see below)
-5. To run the schema against Railway MySQL:
-
-```bash
-mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p<DB_PASSWORD> < database/schema.sql
-```
-
-Or use a MySQL GUI client (TablePlus, DBeaver) with the Railway connection string and run `database/schema.sql` directly.
+Opening `http://localhost:5000` in your browser shows all available endpoints.
 
 ---
 
 ## Environment Variables
 
-| Variable     | Description                                     |
-|--------------|-------------------------------------------------|
-| `PORT`       | Port the server listens on (default: 5000)      |
-| `DB_HOST`    | MySQL host (e.g. `monorail.proxy.rlwy.net`)     |
-| `DB_PORT`    | MySQL port (default: 3306)                      |
-| `DB_USER`    | MySQL username                                  |
-| `DB_PASSWORD`| MySQL password                                  |
-| `DB_NAME`    | Database name (default: `smartseason`)          |
-| `JWT_SECRET` | Secret key for signing JWTs — keep this strong  |
-| `NODE_ENV`   | `development` or `production`                   |
+| Variable      | Description                                          |
+|---------------|------------------------------------------------------|
+| `DB_HOST`     | MySQL host                                           |
+| `DB_PORT`     | MySQL port (default: 3306)                           |
+| `DB_USER`     | MySQL username                                       |
+| `DB_PASSWORD` | MySQL password                                       |
+| `DB_NAME`     | Database name                                        |
+| `JWT_SECRET`  | Secret key for signing JWTs — keep this strong       |
+| `NODE_ENV`    | `development` or `production`                        |
+
+Generate a strong JWT secret:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+
+---
+
+## Database Schema
+
+Three tables power the system:
+
+**users** — stores all admin and agent accounts with bcrypt hashed passwords and role assignment.
+
+**fields** — stores every crop field with name, crop type, planting date, current stage, computed status, and the assigned agent foreign key.
+
+**field_updates** — stores every update submitted by an agent including stage, notes and risk flags stored as JSON.
+
+### Running the schema on a fresh MySQL instance
+
+```bash
+mysql -u root -p < database/schema.sql
+```
+
+### Running the schema on Aiven (cloud)
+
+Aiven uses SSL and does not allow creating new databases. Run the tables directly:
+
+```bash
+mysql -h <aiven-host> -P <aiven-port> -u avnadmin -p --ssl-mode=REQUIRED defaultdb -e "
+CREATE TABLE IF NOT EXISTS users (...);
+CREATE TABLE IF NOT EXISTS fields (...);
+CREATE TABLE IF NOT EXISTS field_updates (...);
+"
+```
+
+Or connect via MySQL Workbench with SSL mode set to REQUIRED and run the table definitions manually.
 
 ---
 
 ## Status Computation Logic
 
-After every field update, the API automatically computes the field's status using this logic:
+After every field update the API automatically computes the field status using this logic:
 
 1. **`completed`** — if the submitted stage is `harvested`
-2. **`at_risk`** — if the update contains any of the following risk flags: `pest_infestation`, `disease_outbreak`, `drought_stress`, `waterlogging`, `nutrient_deficiency` — OR if the field hasn't been updated in more than 14 days and hasn't been harvested yet
+2. **`at_risk`** — if the update contains any of the following risk flags: `pest_infestation`, `disease_outbreak`, `drought_stress`, `waterlogging`, `nutrient_deficiency` OR if the field has not been updated in more than 14 days and has not been harvested yet
 3. **`active`** — everything else
 
-The computed status and the new stage are written back to the parent `fields` row immediately after the update is saved.
+The computed status and new stage are written back to the parent `fields` row immediately after the update is saved. The logic lives in `src/modules/updates/updates.service.js` as a pure function `computeFieldStatus()` making it easy to unit test independently.
 
 ---
 
-## Demo Seed Credentials
+## Field Lifecycle
 
-Register these manually via the API endpoints below:
+```
+planted → growing → ready → harvested
+```
+
+Stages are submitted by field agents via the updates endpoint. Each stage transition is recorded in `field_updates` with a timestamp, notes and optional risk flags.
+
+---
+
+## Demo Credentials
+
+Register these via the API or use them directly if already seeded:
 
 **Admin:**
 - email: `admin@smartseason.com`
 - password: `Admin1234`
 - role: `admin`
 
-**Agent:**
+**Field Agent:**
 - email: `agent@smartseason.com`
 - password: `Agent1234`
 - role: `agent`
@@ -103,13 +179,25 @@ Register these manually via the API endpoints below:
 
 ## Postman Testing Guide
 
-### Base URL
+### Base URLs
 
+Local:
 ```
-http://localhost:5000/api
+http://localhost:5000
 ```
 
-For Railway, replace with your Railway service URL.
+Production:
+```
+https://smartseason-7ukd.onrender.com
+```
+
+Set your base URL as a Postman collection variable called `baseUrl` and use `{{baseUrl}}` in all requests.
+
+Save your JWT tokens as collection variables:
+- `smartadmintoken` — token from admin login
+- `smartagenttoken` — token from agent login
+
+Use `Authorization: Bearer {{smartadmintoken}}` in the headers of protected requests.
 
 ---
 
@@ -117,24 +205,22 @@ For Railway, replace with your Railway service URL.
 
 #### POST /auth/register
 
-Register a new user.
-
 ```json
 {
-  "name": "James Odhiambo",
+  "name": "James Admin",
   "email": "admin@smartseason.com",
   "password": "Admin1234",
   "role": "admin"
 }
 ```
 
-**Expected response (201):**
+**Response 201:**
 ```json
 {
   "success": true,
   "data": {
     "token": "<jwt>",
-    "user": { "id": 1, "name": "James Odhiambo", "email": "admin@smartseason.com", "role": "admin" }
+    "user": { "id": 1, "name": "James Admin", "email": "admin@smartseason.com", "role": "admin" }
   }
 }
 ```
@@ -150,41 +236,39 @@ Register a new user.
 }
 ```
 
-**Expected response (200):**
+**Response 200:**
 ```json
 {
   "success": true,
   "data": {
     "token": "<jwt>",
-    "user": { "id": 1, "name": "James Odhiambo", "email": "admin@smartseason.com", "role": "admin" }
+    "user": { "id": 1, "name": "James Admin", "email": "admin@smartseason.com", "role": "admin" }
   }
 }
 ```
-
-> Copy the `token` value and set it as `Authorization: Bearer <token>` header for all protected endpoints.
 
 ---
 
 ### Fields Endpoints
 
-> All fields endpoints require `Authorization: Bearer <token>` header.
+All fields endpoints require `Authorization: Bearer <token>` header.
 
-#### POST /fields *(admin only)*
+#### POST /fields (admin only)
 
 ```json
 {
   "name": "North Block A",
   "crop_type": "Maize",
-  "planting_date": "2024-03-01",
+  "planting_date": "2026-03-01",
   "assigned_agent_id": 2
 }
 ```
 
-**Expected response (201):**
+**Response 201:**
 ```json
 {
   "success": true,
-  "data": { "id": 1, "name": "North Block A", "crop_type": "Maize", ... }
+  "data": { "id": 1, "name": "North Block A", "crop_type": "Maize", "current_stage": "planted", "status": "active", ... }
 }
 ```
 
@@ -192,10 +276,9 @@ Register a new user.
 
 #### GET /fields
 
-- **Admin:** returns all fields with agent name
-- **Agent:** returns only their assigned fields
+Admin returns all fields with agent name joined. Agent returns only their assigned fields.
 
-**Expected response (200):**
+**Response 200:**
 ```json
 {
   "success": true,
@@ -209,23 +292,21 @@ Register a new user.
 
 Returns a single field with its full update history.
 
-**Expected response (200):**
+**Response 200:**
 ```json
 {
   "success": true,
   "data": {
     "id": 1,
     "name": "North Block A",
-    "updates": [ { "id": 1, "stage": "growing", "notes": "Looking healthy", ... } ]
+    "updates": [ { "id": 1, "stage": "growing", "notes": "...", "agent_name": "Grace Wanjiru", ... } ]
   }
 }
 ```
 
 ---
 
-#### PATCH /fields/:id/assign *(admin only)*
-
-Reassign a field to a different agent.
+#### PATCH /fields/:id/assign (admin only)
 
 ```json
 {
@@ -233,7 +314,7 @@ Reassign a field to a different agent.
 }
 ```
 
-**Expected response (200):**
+**Response 200:**
 ```json
 {
   "success": true,
@@ -243,9 +324,9 @@ Reassign a field to a different agent.
 
 ---
 
-#### DELETE /fields/:id *(admin only)*
+#### DELETE /fields/:id (admin only)
 
-**Expected response (200):**
+**Response 200:**
 ```json
 {
   "success": true,
@@ -257,7 +338,7 @@ Reassign a field to a different agent.
 
 ### Updates Endpoints
 
-> Requires `Authorization: Bearer <agent-token>` header. Only the agent assigned to a field can submit updates for it.
+Requires authentication. Only the agent assigned to a field can submit updates for it.
 
 #### POST /updates
 
@@ -270,7 +351,7 @@ Reassign a field to a different agent.
 }
 ```
 
-**With risk flags:**
+With risk flags:
 ```json
 {
   "field_id": 1,
@@ -280,34 +361,23 @@ Reassign a field to a different agent.
 }
 ```
 
-**Expected response (201):**
+**Response 201:**
 ```json
 {
   "success": true,
-  "data": { "id": 1, "field_id": 1, "stage": "growing", "risk_flags": "[\"pest_infestation\"]", ... }
+  "data": { "id": 1, "field_id": 1, "stage": "growing", "risk_flags": ["pest_infestation"], ... }
 }
 ```
 
-> After this call, the parent field's `status` will be updated to `at_risk` and `current_stage` to `growing` automatically.
-
-**Harvested (triggers completed status):**
-```json
-{
-  "field_id": 1,
-  "stage": "harvested",
-  "notes": "Full harvest complete, yield 4.2 tonnes/ha",
-  "risk_flags": []
-}
-```
+After this call the parent field status updates to `at_risk` automatically.
 
 ---
 
 #### GET /updates/field/:field_id
 
-- Admin can access updates for any field
-- Agent can only access updates for fields assigned to them
+Admin can access updates for any field. Agent can only access updates for their assigned fields.
 
-**Expected response (200):**
+**Response 200:**
 ```json
 {
   "success": true,
@@ -321,11 +391,11 @@ Reassign a field to a different agent.
 
 ### Dashboard Endpoint
 
-> Requires authentication. Response varies by role.
+Response varies by role.
 
 #### GET /dashboard
 
-**Admin response (200):**
+**Admin response:**
 ```json
 {
   "success": true,
@@ -340,7 +410,7 @@ Reassign a field to a different agent.
 }
 ```
 
-**Agent response (200):**
+**Agent response:**
 ```json
 {
   "success": true,
@@ -356,13 +426,13 @@ Reassign a field to a different agent.
 
 ### Valid Risk Flags
 
-| Flag                   |
-|------------------------|
-| `pest_infestation`     |
-| `disease_outbreak`     |
-| `drought_stress`       |
-| `waterlogging`         |
-| `nutrient_deficiency`  |
+| Flag                  | Description                        |
+|-----------------------|------------------------------------|
+| `pest_infestation`    | Crop affected by pests             |
+| `disease_outbreak`    | Disease detected in the field      |
+| `drought_stress`      | Crop showing drought stress signs  |
+| `waterlogging`        | Excess water in the field          |
+| `nutrient_deficiency` | Visible nutrient deficiency signs  |
 
 ### Valid Stage Values
 
@@ -370,14 +440,65 @@ Reassign a field to a different agent.
 
 ---
 
-## Deployment on Railway
+## Production Deployment
 
-1. Push this repo to GitHub
-2. Create a new Railway project and connect the GitHub repo
-3. Add a **MySQL** database plugin
-4. Set all environment variables in the Railway service settings (copy from `.env.example`)
-5. Set the start command to `npm start` (Railway auto-detects `package.json`)
-6. Run `database/schema.sql` against the Railway MySQL instance (see Railway MySQL Setup above)
-7. Deploy — Railway will build and start the service automatically
+### Architecture
 
-The `/health` endpoint (`GET /health`) can be used as a Railway health check URL.
+```
+Render (Node.js API) → Aiven (MySQL cloud database)
+```
+
+### Render Deployment
+
+1. Push repo to GitHub
+2. Go to render.com and create a new Web Service
+3. Connect your GitHub repo
+4. Set build command to `npm install`
+5. Set start command to `node server.js`
+6. Add all environment variables from `.env.example`
+7. Render auto deploys on every push to main
+
+### Aiven MySQL Setup
+
+1. Sign up at aiven.io
+2. Create a free MySQL service
+3. Copy host, port, username, password and database name
+4. Run the schema against Aiven using SSL:
+
+```bash
+mysql -h <host> -P <port> -u avnadmin -p --ssl-mode=REQUIRED defaultdb < database/schema.sql
+```
+
+Note: Aiven does not allow CREATE DATABASE commands. Run the table definitions directly against `defaultdb`.
+
+### Health Check
+
+```
+GET https://smartseason-7ukd.onrender.com/health
+```
+
+Returns:
+```json
+{ "status": "ok" }
+```
+
+---
+
+## Design Decisions
+
+- **No ORM** — raw SQL via mysql2 keeps queries explicit, performant and easy to debug
+- **Connection pool** — handles concurrent requests without queuing under load
+- **Module structure** — each feature (auth, fields, updates, dashboard) is self contained with its own routes, controller and service
+- **Pure status function** — `computeFieldStatus()` is a pure function with no DB dependency making it independently testable
+- **Role middleware factory** — `requireRole('admin')` pattern keeps route definitions clean and readable
+- **JWT 7 day expiry** — long enough for field agents working in the field without constant re-authentication
+
+---
+
+## Assumptions
+
+- A field can only be assigned to one agent at a time
+- Only the assigned agent can submit updates for a field
+- Reassigning a field does not delete historical updates from the previous agent
+- Risk flags are submitted as an array and stored as JSON in the database
+- The 14 day staleness threshold for at_risk status is configurable by changing the value in `updates.service.js`
