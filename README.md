@@ -50,6 +50,8 @@ server/
 │   └── app.js
 ├── database/
 │   └── schema.sql
+├── postman
+│   └── smartseason.postman_collection.json
 ├── .env.example
 ├── server.js
 └── README.md
