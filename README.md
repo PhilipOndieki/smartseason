@@ -179,6 +179,10 @@ Register these via the API or use them directly if already seeded:
 ---
 
 ## Postman Testing Guide
+A ready-to-use Postman collection is available in the `postman/` folder.
+Import it directly into Postman via File > Import to have all endpoints pre-configured.
+
+
 
 ### Base URLs
 
