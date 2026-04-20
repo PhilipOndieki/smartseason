@@ -12,12 +12,39 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.json({
+    name: 'SmartSeason API',
+    version: '1.0.0',
+    endpoints: {
+      auth: {
+        'POST /auth/register': 'Register a new user',
+        'POST /auth/login': 'Login and receive token',
+      },
+      fields: {
+        'GET /fields': 'Get all fields (role scoped)',
+        'POST /fields': 'Create a field (admin only)',
+        'GET /fields/:id': 'Get field with update history',
+        'PATCH /fields/:id/assign': 'Assign field to agent (admin only)',
+        'DELETE /fields/:id': 'Delete a field (admin only)',
+      },
+      updates: {
+        'POST /updates': 'Submit a field update (agent)',
+        'GET /updates/field/:field_id': 'Get updates for a field',
+      },
+      dashboard: {
+        'GET /dashboard': 'Role scoped dashboard summary',
+      },
+    },
+  });
+});
+
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-app.use('/api/auth', authRoutes);
-app.use('/api/fields', fieldsRoutes);
-app.use('/api/updates', updatesRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/auth', authRoutes);
+app.use('/fields', fieldsRoutes);
+app.use('/updates', updatesRoutes);
+app.use('/dashboard', dashboardRoutes);
 
 // catch-all for unknown routes
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
