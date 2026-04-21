@@ -94,4 +94,51 @@ const getUpdatesByField = async (fieldId, user) => {
   return updates;
 };
 
-module.exports = { createUpdate, getUpdatesByField, computeFieldStatus };
+const editUpdate = async (updateId, { stage, notes, risk_flags }, agentId) => {
+  const [rows] = await pool.query('SELECT * FROM field_updates WHERE id = ?', [updateId])
+  if (rows.length === 0) {
+    const err = new Error('Update not found'); err.statusCode = 404; throw err
+  }
+  if (rows[0].agent_id !== agentId) {
+    const err = new Error('You can only edit your own updates'); err.statusCode = 403; throw err
+  }
+
+  const flags = Array.isArray(risk_flags) ? risk_flags : []
+  await pool.query(
+    'UPDATE field_updates SET stage = ?, notes = ?, risk_flags = ? WHERE id = ?',
+    [stage, notes || null, JSON.stringify(flags), updateId]
+  )
+
+  // re-sync parent field status
+  const [fields] = await pool.query('SELECT * FROM fields WHERE id = ?', [rows[0].field_id])
+  const newStatus = computeFieldStatus(fields[0], { stage, risk_flags: flags })
+  await pool.query('UPDATE fields SET current_stage = ?, status = ? WHERE id = ?',
+    [stage, newStatus, rows[0].field_id])
+
+  const [updated] = await pool.query('SELECT * FROM field_updates WHERE id = ?', [updateId])
+  return updated[0]
+}
+
+const deleteUpdate = async (updateId, agentId) => {
+  const [rows] = await pool.query('SELECT * FROM field_updates WHERE id = ?', [updateId])
+  if (rows.length === 0) {
+    const err = new Error('Update not found'); err.statusCode = 404; throw err
+  }
+  if (rows[0].agent_id !== agentId) {
+    const err = new Error('You can only delete your own updates'); err.statusCode = 403; throw err
+  }
+
+  await pool.query('DELETE FROM field_updates WHERE id = ?', [updateId])
+
+  // re-sync parent field to the most recent remaining update
+  const [remaining] = await pool.query(
+    'SELECT * FROM field_updates WHERE field_id = ? ORDER BY created_at DESC LIMIT 1',
+    [rows[0].field_id]
+  )
+  const [fields] = await pool.query('SELECT * FROM fields WHERE id = ?', [rows[0].field_id])
+  const newStatus = computeFieldStatus(fields[0], remaining[0] || null)
+  const newStage = remaining[0]?.stage || 'planted'
+  await pool.query('UPDATE fields SET current_stage = ?, status = ? WHERE id = ?',
+    [newStage, newStatus, rows[0].field_id])
+}
+module.exports = { createUpdate,  editUpdate, deleteUpdate, getUpdatesByField, computeFieldStatus };

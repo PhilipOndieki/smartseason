@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import Fields from './pages/Fields'
 import FieldDetail from './pages/FieldDetail'
 import NewField from './pages/NewField'
+import MyFields from './pages/MyFields'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+
         <Route
           path="/dashboard"
           element={
@@ -23,6 +25,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Admin-only: full field management */}
         <Route
           path="/fields"
           element={
@@ -39,6 +43,18 @@ export default function App() {
             </AdminRoute>
           }
         />
+
+        {/* Agent-only: browse own assigned fields */}
+        <Route
+          path="/my-fields"
+          element={
+            <ProtectedRoute>
+              <MyFields />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Both roles: field detail + update submission */}
         <Route
           path="/fields/:id"
           element={

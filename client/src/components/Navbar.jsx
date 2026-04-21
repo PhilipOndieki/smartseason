@@ -18,6 +18,7 @@ export default function Navbar() {
       >
         SmartSeason
       </Link>
+
       <div className="flex items-center gap-8">
         <NavLink
           to="/dashboard"
@@ -31,7 +32,8 @@ export default function Navbar() {
         >
           Dashboard
         </NavLink>
-        {isAdmin && (
+
+        {isAdmin ? (
           <NavLink
             to="/fields"
             className={({ isActive }) =>
@@ -44,7 +46,21 @@ export default function Navbar() {
           >
             Fields
           </NavLink>
+        ) : (
+          <NavLink
+            to="/my-fields"
+            className={({ isActive }) =>
+              `text-sm transition-colors ${
+                isActive
+                  ? 'text-green-800 font-medium border-b-2 border-green-800 pb-0.5'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`
+            }
+          >
+            My Fields
+          </NavLink>
         )}
+
         <button
           onClick={handleLogout}
           className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
