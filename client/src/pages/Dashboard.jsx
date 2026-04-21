@@ -47,10 +47,14 @@ function UpdatesTable({ updates }) {
 }
 
 function AdminDashboard({ data }) {
-  const stats = data?.stats ?? {}
+  const stats = {
+    total_fields: data?.total_fields,
+    active: data?.status_breakdown?.active,
+    at_risk: data?.status_breakdown?.at_risk,
+    completed: data?.status_breakdown?.completed,
+  }
   const stageCounts = data?.fields_by_stage ?? {}
   const updates = data?.recent_updates ?? []
-
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -81,21 +85,51 @@ function AdminDashboard({ data }) {
 }
 
 function AgentDashboard({ data }) {
-  const stats = data?.stats ?? {}
   const updates = data?.recent_updates ?? []
 
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <StatCard label="Assigned Fields" value={stats.assigned_fields ?? stats.total_fields} />
-        <StatCard label="At Risk" value={stats.at_risk} valueClass="text-amber-600" />
-        <StatCard label="Completed" value={stats.completed} valueClass="text-gray-400" />
+        <StatCard label="Assigned Fields" value={data?.assigned_fields ?? 0} />
+        <StatCard label="At Risk" value={data?.status_breakdown?.at_risk ?? 0} valueClass="text-amber-600" />
+        <StatCard label="Completed" value={data?.status_breakdown?.completed ?? 0} valueClass="text-gray-400" />
       </div>
 
       <div className="bg-white border border-gray-100 rounded p-6">
         <h2 className="text-sm font-medium text-gray-500 mb-4">Recent Updates</h2>
-        <UpdatesTable updates={updates} />
+        {updates.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">No updates yet.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr>
+                <th className="text-left text-sm font-medium text-gray-500 pb-3">Field</th>
+                <th className="text-left text-sm font-medium text-gray-500 pb-3">Stage</th>
+                <th className="text-left text-sm font-medium text-gray-500 pb-3">Notes</th>
+                <th className="text-left text-sm font-medium text-gray-500 pb-3">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {updates.map((u, i) => (
+                <tr key={u.id ?? i} className="even:bg-gray-50">
+                  <td className="py-3 pr-4 text-gray-700">{u.field_name ?? '—'}</td>
+                  <td className="py-3 pr-4"><StageBadge stage={u.stage} /></td>
+                  <td className="py-3 pr-4 text-gray-700 max-w-xs truncate">{u.notes ?? '—'}</td>
+                  <td className="py-3 text-gray-500 whitespace-nowrap">
+                    {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
+
+      {data?.assigned_fields === 0 && (
+        <div className="mt-6 bg-amber-50 border border-amber-100 rounded p-4">
+          <p className="text-sm text-amber-700">You have no fields assigned yet. Contact your coordinator to get started.</p>
+        </div>
+      )}
     </>
   )
 }
@@ -107,7 +141,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     api.get('/dashboard')
-      .then(({ data }) => setData(data))
+      .then(({ data }) => setData(data.data))
       .catch(() => setError('Failed to load dashboard.'))
   }, [])
 

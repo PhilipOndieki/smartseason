@@ -20,8 +20,8 @@ export default function Register() {
     setLoading(true)
     try {
       const { data } = await api.post('/auth/register', form)
-      login(data.token)
-      const payload = JSON.parse(atob(data.token.split('.')[1]))
+      login(data.data.token)
+      const payload = JSON.parse(atob(data.data.token.split('.')[1]))
       navigate(payload.role === 'admin' ? '/fields' : '/dashboard', { replace: true })
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.')

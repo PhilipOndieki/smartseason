@@ -14,14 +14,11 @@ export default function Landing() {
 
   return (
     <div className="relative h-screen overflow-hidden">
-      {/* Background video */}
-      <video
+      {/* Background image */}
+      <img
         className="absolute inset-0 w-full h-full object-cover"
-        src="https://videos.pexels.com/video-files/4813946/4813946-uhd_2560_1440_25fps.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
+        src="https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1920&q=80"
+        alt="Farm field"
       />
 
       {/* Dark overlay */}
@@ -68,7 +65,7 @@ export default function Landing() {
           Monitor Every Field. Act Before It&apos;s Too Late.
         </h1>
         <Link
-          to="/register"
+          to="/login"
           className="text-white border border-white px-8 py-3 rounded text-sm hover:bg-white hover:text-green-800 transition-colors"
         >
           Get Started

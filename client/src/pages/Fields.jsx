@@ -14,7 +14,7 @@ export default function Fields() {
   async function fetchFields() {
     try {
       const { data } = await api.get('/fields')
-      setFields(data)
+      setFields(data.data)
     } catch {
       setError('Failed to load fields.')
     } finally {

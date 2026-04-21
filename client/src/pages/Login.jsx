@@ -20,9 +20,9 @@ export default function Login() {
     setLoading(true)
     try {
       const { data } = await api.post('/auth/login', form)
-      login(data.token)
+      login(data.data.token)
       // decode role from new token
-      const payload = JSON.parse(atob(data.token.split('.')[1]))
+      const payload = JSON.parse(atob(data.data.token.split('.')[1]))
       navigate(payload.role === 'admin' ? '/fields' : '/dashboard', { replace: true })
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.')

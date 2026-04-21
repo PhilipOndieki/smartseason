@@ -11,7 +11,11 @@ const dashboardRoutes = require('./modules/dashboard/dashboard.routes');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'https://smartseason-7ukd.onrender.com'],
+  credentials: true,
+}));
+
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
