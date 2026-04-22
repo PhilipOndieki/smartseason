@@ -14,7 +14,7 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'https://smartseason-olive.vercel.app/', 
+    'https://smartseason-olive.vercel.app', 
     'https://smartseason-7ukd.onrender.com'
   ],
   credentials: true,
