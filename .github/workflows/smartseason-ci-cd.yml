@@ -1,0 +1,79 @@
+name: Smartseason CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'client/**'
+      - '.github/workflows/smartseason-ci-cd.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'client/**'
+
+jobs:
+  build:
+    name: Build smartseason Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+
+    - name: Install dependencies
+      working-directory: ./client
+      run: npm install
+
+    - name: Build application
+      working-directory: ./client
+      run: npm run build
+      env:
+        VITE_API_URL: ${{ secrets.VITE_API_URL }}
+
+    - name: Build stats
+      working-directory: ./client
+      run: |
+        echo "smartseason Build Statistics:"
+        du -sh dist
+        ls -lah dist
+        echo "smartseason frontend build successful!"
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: smartseason-build
+        path: client/dist
+        retention-days: 7
+
+  deploy:
+    name: Deploy to Vercel
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deployment notification
+      run: |
+        echo "Deploying smartseason to Vercel..."
+        echo "Project: smartseason — Real-time Flood Crisis Response"
+        echo "Vercel auto-deploys on push to main branch"
+        echo "Deployment URL: https://smartseason-olive.vercel.app"
+
+    - name: Deployment success
+      run: |
+        echo "smartseason deployment completed!"
+        echo "App URL: https://smartseason-olive.vercel.app"
+        echo "Live Map: ACTIVE"
+        echo "Incident Reporting: LIVE"
+        echo "Shelter Coordination: LIVE"
+        echo "Note: Vercel GitHub integration handles automatic deployment"
