@@ -7,5 +7,7 @@ const { requireRole } = require('../../middleware/roles');
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.get('/agents', authenticate, requireRole('admin'), authController.getAgents);
+router.patch('/users/:id/role', authenticate, requireRole('admin'), authController.updateUserRole);
+router.get('/users', authenticate, requireRole('admin'), authController.getUsers);
 
 module.exports = router;

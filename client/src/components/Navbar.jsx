@@ -34,18 +34,32 @@ export default function Navbar() {
         </NavLink>
 
         {isAdmin ? (
-          <NavLink
-            to="/fields"
-            className={({ isActive }) =>
-              `text-sm transition-colors ${
-                isActive
-                  ? 'text-green-800 font-medium border-b-2 border-green-800 pb-0.5'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`
-            }
-          >
-            Fields
-          </NavLink>
+          <>
+            <NavLink
+              to="/fields"
+              className={({ isActive }) =>
+                `text-sm transition-colors ${
+                  isActive
+                    ? 'text-green-800 font-medium border-b-2 border-green-800 pb-0.5'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`
+              }
+            >
+              Fields
+            </NavLink>
+            <NavLink
+              to="/users"
+              className={({ isActive }) =>
+                `text-sm transition-colors ${
+                  isActive
+                    ? 'text-green-800 font-medium border-b-2 border-green-800 pb-0.5'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`
+              }
+            >
+              Users
+            </NavLink>
+          </>
         ) : (
           <NavLink
             to="/my-fields"

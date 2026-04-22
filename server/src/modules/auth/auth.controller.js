@@ -37,4 +37,24 @@ const getAgents = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getAgents };
+const updateUserRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!role) return res.status(400).json({ success: false, message: 'role is required' });
+    const user = await authService.updateUserRole(Number(req.params.id), role);
+    return res.status(200).json({ success: true, data: user });
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({ success: false, message: err.message });
+  }
+};
+
+const getUsers = async (req, res) => {
+  try {
+    const users = await authService.getUsers();
+    return res.status(200).json({ success: true, data: users });
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { register, login, getAgents, updateUserRole, getUsers };

@@ -51,5 +51,25 @@ const getAgents = async () => {
   return rows;
 };
 
-module.exports = { register, login, getAgents };
+const updateUserRole = async (userId, role) => {
+  const validRole = ['admin', 'agent'].includes(role) ? role : 'agent';
+  const [rows] = await pool.query('SELECT id FROM users WHERE id = ?', [userId]);
+  if (rows.length === 0) {
+    const err = new Error('User not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  await pool.query('UPDATE users SET role = ? WHERE id = ?', [validRole, userId]);
+  const [updated] = await pool.query('SELECT id, name, email, role FROM users WHERE id = ?', [userId]);
+  return updated[0];
+};
+
+const getUsers = async () => {
+  const [rows] = await pool.query(
+    'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
+  );
+  return rows;
+};
+
+module.exports = { register, login, getAgents, updateUserRole, getUsers };
 

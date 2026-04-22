@@ -8,6 +8,8 @@ import Fields from './pages/Fields'
 import FieldDetail from './pages/FieldDetail'
 import NewField from './pages/NewField'
 import MyFields from './pages/MyFields'
+import Users from './pages/Users'
+
 
 export default function App() {
   return (
@@ -63,6 +65,16 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* users */}
+        <Route
+          path="/users"
+          element={
+            <AdminRoute>
+              <Users />
+            </AdminRoute>
+          }
+        />       
       </Routes>
     </BrowserRouter>
   )
