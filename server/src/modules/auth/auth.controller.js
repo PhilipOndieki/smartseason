@@ -41,7 +41,7 @@ const updateUserRole = async (req, res) => {
   try {
     const { role } = req.body;
     if (!role) return res.status(400).json({ success: false, message: 'role is required' });
-    const user = await authService.updateUserRole(Number(req.params.id), role);
+    const user = await authService.updateUserRole(Number(req.params.id), role, req.user.id);
     return res.status(200).json({ success: true, data: user });
   } catch (err) {
     return res.status(err.statusCode || 500).json({ success: false, message: err.message });

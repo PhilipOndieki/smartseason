@@ -59,6 +59,11 @@ const getAgents = async () => {
 
 const updateUserRole = async (userId, role, requestingUserId) => {
   const [[requester]] = await pool.query('SELECT is_super FROM users WHERE id = ?', [requestingUserId]);
+  if (!requester) {
+    const err = new Error('Requesting user not found')
+    err.statusCode = 404
+    throw err
+  }
   const [[target]] = await pool.query('SELECT role, is_super FROM users WHERE id = ?', [userId]);
 
   if (!target) {
@@ -79,13 +84,6 @@ const updateUserRole = async (userId, role, requestingUserId) => {
     throw err;
   }
 
-  if (!requester) {
-    const err = new Error('Requesting user not found')
-    err.statusCode = 404
-    throw err
-  }
-
-  
   const validRole = ['admin', 'agent'].includes(role) ? role : 'agent';
   await pool.query('UPDATE users SET role = ? WHERE id = ?', [validRole, userId]);
 
