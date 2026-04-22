@@ -18,7 +18,7 @@ const register = async ({ name, email, password, role }) => {
   }
 
   const password_hash = await bcrypt.hash(password, 12);
-  const validRole = ['admin', 'agent'].includes(role) ? role : 'agent';
+  const validRole = 'agent';
 
   const [result] = await pool.query(
     'INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)',

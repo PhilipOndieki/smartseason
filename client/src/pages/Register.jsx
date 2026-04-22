@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext'
 export default function Register() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'agent' })
+  const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -70,17 +70,6 @@ export default function Register() {
               required
               className="w-full pb-2 border-b border-gray-300 focus:border-green-800 outline-none text-sm text-gray-700 bg-transparent placeholder-gray-400"
             />
-          </div>
-          <div>
-            <select
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              className="w-full pb-2 border-b border-gray-300 focus:border-green-800 outline-none text-sm text-gray-700 bg-transparent"
-            >
-              <option value="agent">Agent</option>
-              <option value="admin">Admin</option>
-            </select>
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
