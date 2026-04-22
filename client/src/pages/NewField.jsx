@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import api from '../api/axios'
@@ -11,8 +11,15 @@ export default function NewField() {
     planting_date: '',
     assigned_agent_id: '',
   })
+  const [agents, setAgents] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    api.get('/auth/agents')
+      .then(({ data }) => setAgents(data.data))
+      .catch(() => setAgents([]))
+  }, [])
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -94,15 +101,22 @@ export default function NewField() {
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-2">
                 Assign to Agent
               </label>
-              <input
-                type="number"
+              <select
                 name="assigned_agent_id"
                 value={form.assigned_agent_id}
                 onChange={handleChange}
-                placeholder="Enter agent user ID"
-                className="w-full pb-2 border-b border-gray-200 focus:border-green-800 outline-none text-sm text-gray-800 bg-transparent placeholder-gray-300 transition-colors"
-              />
-              <p className="text-xs text-gray-400 mt-1.5">Enter the numeric user ID of the agent to assign.</p>
+                className="w-full pb-2 border-b border-gray-200 focus:border-green-800 outline-none text-sm text-gray-800 bg-transparent transition-colors"
+              >
+                <option value="">— Unassigned —</option>
+                {agents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} ({a.email})
+                  </option>
+                ))}
+              </select>
+              {agents.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1">No agents registered yet.</p>
+              )}
             </div>
 
             {error && (

@@ -26,8 +26,15 @@ function EditFieldModal({ field, onClose, onSaved }) {
       : '',
     assigned_agent_id: field.assigned_agent_id ?? '',
   })
+  const [agents, setAgents] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    api.get('/auth/agents')
+      .then(({ data }) => setAgents(data.data))
+      .catch(() => setAgents([]))
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -104,17 +111,22 @@ function EditFieldModal({ field, onClose, onSaved }) {
 
           <div>
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-2">Reassign Agent</label>
-            <input
-              type="number"
+            <select
               value={form.assigned_agent_id}
               onChange={(e) => setForm((p) => ({ ...p, assigned_agent_id: e.target.value }))}
-              placeholder="Enter agent user ID"
-              className="w-full pb-2 border-b border-gray-200 focus:border-green-800 outline-none text-sm text-gray-800 bg-transparent placeholder-gray-300 transition-colors"
-            />
+              className="w-full pb-2 border-b border-gray-200 focus:border-green-800 outline-none text-sm text-gray-800 bg-transparent transition-colors"
+            >
+              <option value="">— Unassigned —</option>
+              {agents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({a.email})
+                </option>
+              ))}
+            </select>
             <p className="text-xs text-gray-400 mt-1">
               Currently assigned to:{' '}
               <span className="text-gray-600 font-medium">
-                {field.agent_name ?? `Agent ID ${field.assigned_agent_id}` ?? 'unassigned'}
+                {field.agent_name ?? 'unassigned'}
               </span>
             </p>
           </div>

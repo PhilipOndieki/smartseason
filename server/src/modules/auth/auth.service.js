@@ -43,4 +43,13 @@ const login = async ({ email, password }) => {
   return { token: signToken(payload), user: payload };
 };
 
-module.exports = { register, login };
+const getAgents = async () => {
+  const [rows] = await pool.query(
+    'SELECT id, name, email FROM users WHERE role = ? ORDER BY name ASC',
+    ['agent']
+  );
+  return rows;
+};
+
+module.exports = { register, login, getAgents };
+

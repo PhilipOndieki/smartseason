@@ -28,4 +28,13 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+const getAgents = async (req, res) => {
+  try {
+    const agents = await authService.getAgents();
+    return res.status(200).json({ success: true, data: agents });
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { register, login, getAgents };
