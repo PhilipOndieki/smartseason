@@ -34,3 +34,6 @@ CREATE TABLE IF NOT EXISTS field_updates (
   CONSTRAINT fk_update_field FOREIGN KEY (field_id) REFERENCES fields(id) ON DELETE CASCADE,
   CONSTRAINT fk_update_agent FOREIGN KEY (agent_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+ALTER TABLE users ADD COLUMN is_super TINYINT(1) DEFAULT 0;
+UPDATE users SET is_super = 1 WHERE id = 1; 

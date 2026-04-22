@@ -4,7 +4,7 @@ const pool = require('../../config/db');
 
 const signToken = (user) =>
   jwt.sign(
-    { id: user.id, name: user.name, email: user.email, role: user.role },
+    { id: user.id, name: user.name, email: user.email, role: user.role, is_super: user.is_super },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -39,7 +39,13 @@ const login = async ({ email, password }) => {
     throw err;
   }
 
-  const payload = { id: user.id, name: user.name, email: user.email, role: user.role };
+  const payload = { 
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    is_super: user.is_super,
+  };
   return { token: signToken(payload), user: payload };
 };
 
@@ -51,16 +57,42 @@ const getAgents = async () => {
   return rows;
 };
 
-const updateUserRole = async (userId, role) => {
-  const validRole = ['admin', 'agent'].includes(role) ? role : 'agent';
-  const [rows] = await pool.query('SELECT id FROM users WHERE id = ?', [userId]);
-  if (rows.length === 0) {
+const updateUserRole = async (userId, role, requestingUserId) => {
+  const [[requester]] = await pool.query('SELECT is_super FROM users WHERE id = ?', [requestingUserId]);
+  const [[target]] = await pool.query('SELECT role, is_super FROM users WHERE id = ?', [userId]);
+
+  if (!target) {
     const err = new Error('User not found');
     err.statusCode = 404;
     throw err;
   }
+
+  if (target.is_super) {
+    const err = new Error('This user cannot be reassigned');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  if (target.role === 'admin' && !requester.is_super) {
+    const err = new Error('Only the primary admin can demote other admins');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  if (!requester) {
+    const err = new Error('Requesting user not found')
+    err.statusCode = 404
+    throw err
+  }
+
+  
+  const validRole = ['admin', 'agent'].includes(role) ? role : 'agent';
   await pool.query('UPDATE users SET role = ? WHERE id = ?', [validRole, userId]);
-  const [updated] = await pool.query('SELECT id, name, email, role FROM users WHERE id = ?', [userId]);
+
+  const [updated] = await pool.query(
+    'SELECT id, name, email, role FROM users WHERE id = ?',
+    [userId]
+  );
   return updated[0];
 };
 

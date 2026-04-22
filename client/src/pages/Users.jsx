@@ -74,6 +74,9 @@ export default function Users() {
                       {u.id === currentUser?.id && (
                         <span className="ml-2 text-xs text-gray-400">(you)</span>
                       )}
+                      {u.is_super === 1 && (
+                        <span className="ml-2 text-xs text-purple-400">(primary)</span>
+                      )}
                     </td>
                     <td className="px-5 py-3 text-gray-600">{u.email}</td>
                     <td className="px-5 py-3">
@@ -89,7 +92,11 @@ export default function Users() {
                       {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      {u.id !== currentUser?.id ? (
+                      {u.id === currentUser?.id || u.is_super === 1 ? (
+                        <span className="text-xs text-gray-300">—</span>
+                      ) : u.role === 'admin' && !currentUser?.is_super ? (
+                        <span className="text-xs text-gray-300">—</span>
+                      ) : (
                         <button
                           onClick={() =>
                             handleRoleChange(u.id, u.role === 'admin' ? 'agent' : 'admin')
@@ -103,14 +110,18 @@ export default function Users() {
                             ? 'Make Agent'
                             : 'Make Admin'}
                         </button>
-                      ) : (
-                        <span className="text-xs text-gray-300">—</span>
                       )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {!loading && users.length === 0 && (
+          <div className="text-center py-16 bg-white border border-gray-100 rounded">
+            <p className="text-sm text-gray-400">No users found.</p>
           </div>
         )}
       </main>
