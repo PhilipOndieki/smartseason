@@ -14,7 +14,7 @@ export default function Navbar() {
     <nav className="h-14 bg-white border-b border-gray-200 shadow-sm flex items-center px-8 sticky top-0 z-50">
       <Link
         to={isAdmin ? '/fields' : '/dashboard'}
-        className="text-green-800 font-semibold text-base mr-auto tracking-tight"
+        className="text-green-800 font-semibold text-base tracking-tight"
       >
         SmartSeason
       </Link>

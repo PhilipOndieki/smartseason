@@ -65,7 +65,7 @@ jobs:
     - name: Deployment notification
       run: |
         echo "Deploying smartseason to Vercel..."
-        echo "Project: smartseason — Real-time Flood Crisis Response"
+        echo "Project: smartseason"
         echo "Vercel auto-deploys on push to main branch"
         echo "Deployment URL: https://smartseason-olive.vercel.app"
 

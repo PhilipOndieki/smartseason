@@ -26,7 +26,7 @@ export default function Landing() {
 
       {/* Navbar */}
       <nav
-        className={`absolute top-0 left-0 right-0 z-10 h-14 flex items-center px-8 transition-all duration-200 ${
+        className={`absolute top-0 left-0 right-0 z-20 h-14 flex items-center px-8 transition-all duration-200 ${
           scrolled ? 'bg-white border-b border-gray-100' : 'bg-transparent'
         }`}
       >
