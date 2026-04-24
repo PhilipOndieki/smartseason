@@ -31,10 +31,10 @@ A full-stack crop field monitoring platform. Admins create and assign fields to 
 
 ```
 Browser (React/Vite)
-        │
-        │  HTTPS / JWT Bearer
-        ▼
-Render (Express API)  ──────►  Railway (MySQL Cloud DB)
+        |
+        |  HTTPS / JWT Bearer
+        v
+Render (Express API)  ------->  Railway (MySQL Cloud DB)
 ```
 
 The client is a React SPA deployed on Vercel. All data lives in a MySQL database hosted on Railway. The Express API on Render handles authentication, business logic, and status computation. Every request from the client that hits a protected route must carry a JWT in the `Authorization: Bearer` header.
@@ -44,6 +44,7 @@ The client is a React SPA deployed on Vercel. All data lives in a MySQL database
 ## Tech Stack
 
 ### Server
+
 | Layer | Technology |
 |---|---|
 | Runtime | Node.js 18+ |
@@ -55,6 +56,7 @@ The client is a React SPA deployed on Vercel. All data lives in a MySQL database
 | Deployment | Render |
 
 ### Client
+
 | Layer | Technology |
 |---|---|
 | Framework | React 19 |
@@ -305,7 +307,7 @@ The JWT payload contains:
 | `admin` | Full access: create/edit/delete fields, assign agents, view all fields and updates, manage user roles, view admin dashboard |
 | `agent` | View only their assigned fields, submit/edit/delete their own updates, view agent dashboard |
 
-The `is_super` flag on the primary admin (user id 1) prevents that account from being demoted and allows demoting other admins — only the super admin can downgrade another admin to agent.
+The `is_super` flag on the primary admin (user id 1) prevents that account from being demoted. Only the super admin can downgrade another admin to agent.
 
 ---
 
@@ -376,7 +378,7 @@ Returns all registered users ordered by `created_at` descending.
 
 #### `PATCH /auth/users/:id/role` — Admin only
 
-Changes a user's role between `admin` and `agent`. The super admin cannot be demoted. A regular admin cannot demote another admin — only the super admin can.
+Changes a user's role between `admin` and `agent`. The super admin cannot be demoted. A regular admin cannot demote another admin; only the super admin can.
 
 **Request:**
 ```json
@@ -455,6 +457,7 @@ Submits a field update. Only the agent currently assigned to the field may submi
 ```
 
 With risk flags:
+
 ```json
 {
   "field_id": 1,
@@ -581,7 +584,7 @@ Form to create a field. Loads available agents from `GET /auth/agents` into a dr
 
 #### `/users` — User Management
 
-Table of all registered users showing name, email, role badge, and join date. Each row has a role-toggle button (Make Admin / Make Agent) — disabled for the current user, the super admin, and (for non-super admins) other admins.
+Table of all registered users showing name, email, role badge, and join date. Each row has a role-toggle button (Make Admin / Make Agent) disabled for the current user, the super admin, and (for non-super admins) other admins.
 
 ---
 
@@ -667,10 +670,10 @@ The `isAdmin` flag from `AuthContext` (derived from `user.role === 'admin'` in t
 ### Architecture
 
 ```
-GitHub → GitHub Actions (build check) → Vercel (client) 
+GitHub → GitHub Actions (build check) → Vercel (client)
 GitHub → push to main → Render (server, auto-deploy)
-                              │
-                              └─► Railway MySQL (cloud DB)
+                              |
+                              └── Railway MySQL (cloud DB)
 ```
 
 ### CI/CD (GitHub Actions)
@@ -710,6 +713,7 @@ mysql://root:<password>@<host>.railway.app:<port>/railway
 ```
 
 For example:
+
 ```
 mysql://root:sUp3rS3cr3t@monorail.proxy.rlwy.net:31045/railway
 ```
@@ -731,7 +735,6 @@ mysql -h monorail.proxy.rlwy.net -P 31045 -u root -p railway < server/database/s
 ```
 
 > **Note:** Railway provisions a default database called `railway`. Remove the `CREATE DATABASE` line from `schema.sql` before running it, or the command will fail — run the `CREATE TABLE` statements directly against the `railway` database.
-```
 
 ### Health Check
 
@@ -744,12 +747,7 @@ GET https://smartseason-7ukd.onrender.com/health
 
 ## Demo Credentials
 
-These accounts must be seeded or registered before use. Register via `POST /auth/register`, then manually set roles in the database if needed.
-
-| Role | Email | Password |
-|---|---|---|
-| Admin (super) | admin@smartseason.com | Admin1234 |
-| Agent | agent@smartseason.com | Agent1234 |
+Demo credentials are provided directly to reviewers via the application submission. To set up your own accounts, register via `POST /auth/register` and promote users to admin directly in the database.
 
 ---
 
